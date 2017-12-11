@@ -1,0 +1,5 @@
+[2017-12-11T14:18:02.584] [DEBUG] urlshortener - url:[object Object]
+[2017-12-11T14:18:02.587] [DEBUG] urlshortener - mongo:mongodb://urlshortener:urlsh0rt3n3r@localhost:27017/admin
+[2017-12-11T14:18:02.592] [DEBUG] urlshortener - context: { "URL" : "http://www.google.com" }
+
+[2017-12-11T14:18:02.991] [DEBUG] urlshortener - shorten:831a99

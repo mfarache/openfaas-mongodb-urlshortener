@@ -1,0 +1,13 @@
+provider:
+  name: faas
+  gateway: http://localhost:8080
+
+functions:
+  openfaas-mongodb-urlshortener:
+    lang: node
+    handler: ./openfaas-mongodb-urlshortener
+    image: dockermau/openfaas-mongodb-urlshortener
+  openfaas-mongodb-urlresolver:
+    lang: node
+    handler: ./openfaas-mongodb-urlresolver
+    image: dockermau/openfaas-mongodb-urlresolver

@@ -1,0 +1,116 @@
+version: "3.2"
+services:
+    gateway:
+        volumes:
+            - "/var/run/docker.sock:/var/run/docker.sock"
+        ports:
+            - 8080:8080
+        image: functions/gateway:0.6.13
+        networks:
+            - functions
+        environment:
+            dnsrr: "true"  # Temporarily use dnsrr in place of VIP while issue persists on PWD
+        deploy:
+            placement:
+                constraints:
+                    - 'node.role == manager'
+                    - 'node.platform.os == linux'
+    prometheus:
+        image: functions/prometheus:latest  # autobuild from Dockerfile in repo.
+        command: "-config.file=/etc/prometheus/prometheus.yml -storage.local.path=/prometheus -storage.local.memory-chunks=10000 --alertmanager.url=http://alertmanager:9093"
+        ports:
+            - 9090:9090
+        depends_on:
+            - gateway
+            - alertmanager
+        environment:
+            no_proxy: "gateway"
+        networks:
+            - functions
+        deploy:
+            placement:
+                constraints:
+                    - 'node.role == manager'
+                    - 'node.platform.os == linux'
+
+    alertmanager:
+        image: functions/alertmanager:latest    # autobuild from Dockerfile in repo.
+        environment:
+            no_proxy: "gateway"
+#        volumes:
+#            - ./prometheus/alertmanager.yml:/alertmanager.yml
+        command:
+            - '-config.file=/alertmanager.yml'
+        networks:
+            - functions
+        ports:
+            - 9093:9093
+        deploy:
+            placement:
+                constraints:
+                    - 'node.role == manager'
+                    - 'node.platform.os == linux'
+
+    mongodb:
+        image: mongo:3.4.10
+        networks:
+            - functions
+        ports:
+            - 27017:27017
+        volumes:
+            - '/datastore/mongodb:/data/db'
+        environment:
+            no_proxy: "gateway"
+            https_proxy: $https_proxy
+            # provide your credentials here
+            MONGO_INITDB_ROOT_USERNAME: "urlshortener"
+            MONGO_INITDB_ROOT_PASSWORD: "urlsh0rt3n3r"
+        deploy:
+            placement:
+                constraints:
+                    - 'node.platform.os == linux'
+
+    urlshortener:
+        image: dockermau/openfaas-mongodb-urlshortener:1.0
+        labels:
+            function: "true"
+        depends_on:
+            - gateway
+            - mongodb
+        networks:
+            - functions
+        environment:
+            no_proxy: "gateway"
+            https_proxy: $https_proxy
+            MONGO_HOST: "mongodb"
+            MONGO_PORT: "27017"
+            MONGO_DB: "short"
+        deploy:
+            placement:
+                constraints:
+                    - 'node.platform.os == linux'
+    
+    urlresolver:
+        image: dockermau/openfaas-mongodb-urlresolver:1.0
+        labels:
+            function: "true"
+        depends_on:
+            - gateway
+            - mongodb
+        networks:
+            - functions
+        environment:
+            no_proxy: "gateway"
+            https_proxy: $https_proxy
+            MONGO_HOST: "mongodb"
+            MONGO_PORT: "27017"
+            MONGO_DB: "short"
+        deploy:
+            placement:
+                constraints:
+                    - 'node.platform.os == linux'
+networks:
+    functions:
+        driver: overlay
+        # Docker does not support this option yet - maybe create outside of the stack and reference as "external"?
+        #attachable: true
